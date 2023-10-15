@@ -1,0 +1,64 @@
+                     +-----------------+
+                     |  COMP 7035 BCIT |
+                     |  A01 part2      |
+                     +-----------------+
+
+
+This file details the revised implementation of the timer_sleep() function in 
+Pintos, removing the prior busy-waiting method.
+
+                            TIMER_SLEEP
+                            ============
+
+---- DATA STRUCTURES ----
+
+struct sleeping_thread stores data for sleeping threads, including wake-up time and a semaphore for synchronization.
+
+```struct sleeping_thread 
+{
+  int64_t wake_up_time;    
+  struct semaphore sema;     
+  struct list_elem elem;   
+};```
+
+
+New list sleeping_threads stores all currently sleeping threads.
+
+```static struct list sleeping_threads; ```
+
+
+---- ALGORITHMS ----
+timer_sleep() now initializes a sleeping_thread struct, 
+sets the wake-up time, and adds it to the sleeping_threads list. 
+The thread then blocks using a semaphore. The timer_interrupt() function checks
+ the sleeping_threads list and unblocks threads that are ready to wake up.
+
+ ---- SYNCHRONIZATION ----
+ The insertion of sleeping threads into the sleeping_threads list and
+the removal of waking threads are both protected by disabling interrupts 
+temporarily, ensuring that these operations are atomic and preventing race conditions.
+
+The semaphore is used to block the calling thread effectively and is signaled in the timer_interrupt() 
+to wake the thread up at the appropriate time, ensuring that threads do not busy-wait.
+
+---- RATIONALE ----
+
+Advantages:
+The revised implementation eliminates busy-waiting, leading to more efficient CPU utilization.
+
+It employs semaphores for simplicity and effective blocking and 
+waking of threads, enhancing the readability and maintainability of the code.
+
+
+Disadvantages:
+
+The global list sleeping_threads might become a bottleneck if a large number of
+threads are sleeping, impacting the performance during insertion and removal operations.
+
+The use of disabling interrupts to ensure atomic operations might lead to bus if not used correctly
+
+----SUMMARY----
+This new implementation of timer_sleep() enhances CPU efficiency by eliminating
+busy-waiting, though considerations for managing the global sleeping_threads list and 
+interrupt disabling should be addressed.
+
